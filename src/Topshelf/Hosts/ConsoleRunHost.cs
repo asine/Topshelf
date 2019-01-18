@@ -16,11 +16,13 @@ namespace Topshelf.Hosts
     using System.Diagnostics;
     using System.IO;
     using System.Threading;
-#if !NET35
     using System.Threading.Tasks;
-#endif
     using Logging;
+#if !NETCORE
+    using Microsoft.Win32;
+#endif
     using Runtime;
+
 
     public class ConsoleRunHost :
         Host,
@@ -32,19 +34,32 @@ namespace Topshelf.Hosts
         readonly HostSettings _settings;
         int _deadThread;
 
+        TopshelfExitCode _exitCode;
         ManualResetEvent _exit;
         volatile bool _hasCancelled;
 
         public ConsoleRunHost(HostSettings settings, HostEnvironment environment, ServiceHandle serviceHandle)
         {
             if (settings == null)
-                throw new ArgumentNullException("settings");
+                throw new ArgumentNullException(nameof(settings));
             if (environment == null)
-                throw new ArgumentNullException("environment");
+                throw new ArgumentNullException(nameof(environment));
 
             _settings = settings;
             _environment = environment;
             _serviceHandle = serviceHandle;
+
+#if !NETCORE
+            if (settings.CanSessionChanged)
+            {
+                SystemEvents.SessionSwitch += OnSessionChanged;
+            }
+
+            if (settings.CanHandlePowerEvent)
+            {
+                SystemEvents.PowerModeChanged += OnPowerModeChanged;
+            }
+    #endif
         }
 
         public TopshelfExitCode Run()
@@ -59,7 +74,7 @@ namespace Topshelf.Hosts
                 {
                     _log.ErrorFormat("The {0} service is running and must be stopped before running via the console",
                         _settings.ServiceName);
-             
+
                     return TopshelfExitCode.ServiceAlreadyRunning;
                 }
             }
@@ -70,10 +85,12 @@ namespace Topshelf.Hosts
                 _log.Debug("Starting up as a console application");
 
                 _exit = new ManualResetEvent(false);
+                _exitCode = TopshelfExitCode.Ok;
 
+                Console.Title = _settings.DisplayName;
                 Console.CancelKeyPress += HandleCancelKeyPress;
 
-                if(!_serviceHandle.Start(this))
+                if (!_serviceHandle.Start(this))
                     throw new TopshelfException("The service failed to start (return false).");
 
                 started = true;
@@ -84,13 +101,15 @@ namespace Topshelf.Hosts
             }
             catch (Exception ex)
             {
+                _settings.ExceptionCallback?.Invoke(ex);
+
                 _log.Error("An exception occurred", ex);
 
                 return TopshelfExitCode.AbnormalExit;
             }
             finally
             {
-                if(started)
+                if (started)
                     StopService();
 
                 _exit.Close();
@@ -99,8 +118,9 @@ namespace Topshelf.Hosts
                 HostLogger.Shutdown();
             }
 
-            return TopshelfExitCode.Ok;
+            return _exitCode;
         }
+
 
         void HostControl.RequestAdditionalTime(TimeSpan timeRemaining)
         {
@@ -108,33 +128,44 @@ namespace Topshelf.Hosts
             // it's a pain in the ass
         }
 
+
         void HostControl.Stop()
         {
             _log.Info("Service Stop requested, exiting.");
             _exit.Set();
         }
 
-        void HostControl.Restart()
+        void HostControl.Stop(TopshelfExitCode exitCode)
         {
-            _log.Info("Service Restart requested, but we don't support that here, so we are exiting.");
+            _log.Info($"Service Stop requested with exit code {exitCode}, exiting.");
+            _exitCode = exitCode;
             _exit.Set();
         }
 
         void CatchUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            _log.Error("The service threw an unhandled exception", (Exception)e.ExceptionObject);
+            _settings.ExceptionCallback?.Invoke((Exception) e.ExceptionObject);
+
+            if (_settings.UnhandledExceptionPolicy == UnhandledExceptionPolicyCode.TakeNoAction)
+              return;
+
+            _log.Fatal("The service threw an unhandled exception", (Exception) e.ExceptionObject);
+
+            if (_settings.UnhandledExceptionPolicy == UnhandledExceptionPolicyCode.LogErrorOnly)
+              return;
+
+            HostLogger.Shutdown();
 
             if (e.IsTerminating)
             {
+                _exitCode = TopshelfExitCode.AbnormalExit;
                 _exit.Set();
-                
-#if !NET35
+
                 // it isn't likely that a TPL thread should land here, but if it does let's no block it
-                if(Task.CurrentId.HasValue)
+                if (Task.CurrentId.HasValue)
                 {
                     return;
                 }
-#endif
 
                 // this is evil, but perhaps a good thing to let us clean up properly.
                 int deadThreadId = Interlocked.Increment(ref _deadThread);
@@ -145,6 +176,7 @@ namespace Topshelf.Hosts
             }
         }
 
+
         void StopService()
         {
             try
@@ -153,13 +185,16 @@ namespace Topshelf.Hosts
                 {
                     _log.InfoFormat("Stopping the {0} service", _settings.ServiceName);
 
-                    if(!_serviceHandle.Stop(this))
+                    if (!_serviceHandle.Stop(this))
                         throw new TopshelfException("The service failed to stop (returned false).");
                 }
             }
             catch (Exception ex)
             {
+                _settings.ExceptionCallback?.Invoke(ex);
+
                 _log.Error("The service did not shut down gracefully", ex);
+                _exitCode = TopshelfExitCode.ServiceControlRequestFailed;
             }
             finally
             {
@@ -168,6 +203,7 @@ namespace Topshelf.Hosts
                 _log.InfoFormat("The {0} service has stopped.", _settings.ServiceName);
             }
         }
+
 
         void HandleCancelKeyPress(object sender, ConsoleCancelEventArgs consoleCancelEventArgs)
         {
@@ -185,8 +221,8 @@ namespace Topshelf.Hosts
             _log.Info("Control+C detected, attempting to stop service.");
             if (_serviceHandle.Stop(this))
             {
-                _exit.Set();
                 _hasCancelled = true;
+                _exit.Set();
             }
             else
             {
@@ -194,5 +230,60 @@ namespace Topshelf.Hosts
                 _log.Error("The service is not in a state where it can be stopped.");
             }
         }
+
+#if !NETCORE
+        void OnSessionChanged(object sender, SessionSwitchEventArgs e)
+        {
+            var arguments = new ConsoleSessionChangedArguments(e.Reason);
+
+            _serviceHandle.SessionChanged(this, arguments);
+        }
+
+        void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+        {
+            var arguments = new ConsolePowerEventArguments(e.Mode);
+
+            _serviceHandle.PowerEvent(this, arguments);
+        }
+
+
+        class ConsoleSessionChangedArguments :
+            SessionChangedArguments
+        {
+            public ConsoleSessionChangedArguments(SessionSwitchReason reason)
+            {
+                ReasonCode = (SessionChangeReasonCode) Enum.ToObject(typeof(SessionChangeReasonCode), (int) reason);
+                SessionId = Process.GetCurrentProcess().SessionId;
+            }
+
+            public SessionChangeReasonCode ReasonCode { get; }
+
+            public int SessionId { get; }
+        }
+
+        class ConsolePowerEventArguments :
+            PowerEventArguments
+        {
+            public ConsolePowerEventArguments(PowerModes powerMode)
+            {
+                switch (powerMode)
+                {
+                    case PowerModes.Resume:
+                        EventCode = PowerEventCode.ResumeAutomatic;
+                        break;
+                    case PowerModes.StatusChange:
+                        EventCode = PowerEventCode.PowerStatusChange;
+                        break;
+                    case PowerModes.Suspend:
+                        EventCode = PowerEventCode.Suspend;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(powerMode), powerMode, null);
+                }
+            }
+
+            public PowerEventCode EventCode { get; }
+        }
+#endif
     }
 }

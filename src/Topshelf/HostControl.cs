@@ -31,8 +31,8 @@ namespace Topshelf
         void Stop();
 
         /// <summary>
-        /// Restarts the Host
+        /// Stops the Host, returning the specified exit code
         /// </summary>
-        void Restart();
+        void Stop(TopshelfExitCode exitCode);
     }
 }

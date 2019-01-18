@@ -101,6 +101,35 @@ namespace Topshelf.Builders
                     serviceShutdown.Shutdown(hostControl);
                 }
             }
+
+            public void SessionChanged(HostControl hostControl, SessionChangedArguments arguments)
+            {
+                var sessionChange = _service as ServiceSessionChange;
+                if (sessionChange != null)
+                {
+                    sessionChange.SessionChange(hostControl, arguments);
+                }
+            }
+
+            public bool PowerEvent(HostControl hostControl, PowerEventArguments arguments)
+            {
+                var powerEvent = _service as ServicePowerEvent;
+                if (powerEvent != null)
+                {
+                    return powerEvent.PowerEvent(hostControl, arguments);
+                }
+
+                return false;
+            }
+
+            public void CustomCommand(HostControl hostControl, int command)
+            {
+                var customCommand = _service as ServiceCustomCommand;
+                if (customCommand != null)
+                {
+                    customCommand.CustomCommand(hostControl, command);
+                }
+            }
         }
     }
 }

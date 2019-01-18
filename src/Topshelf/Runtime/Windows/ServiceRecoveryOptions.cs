@@ -25,15 +25,18 @@ namespace Topshelf.Runtime.Windows
 
         public int ResetPeriod { get; set; }
 
-        public IEnumerable<ServiceRecoveryAction> Actions
-        {
-            get { return _actions; }
-        }
+        public IEnumerable<ServiceRecoveryAction> Actions => _actions;
 
         public bool RecoverOnCrashOnly { get; set; }
 
         public void AddAction(ServiceRecoveryAction serviceRecoveryAction)
         {
+            if (_actions.Count == 3)
+            {
+                throw new TopshelfException("Recovery action can not be added. " +
+                                            "Windows recovery does not support more than 3 actions");
+            }
+
             _actions.Add(serviceRecoveryAction);
         }
     }

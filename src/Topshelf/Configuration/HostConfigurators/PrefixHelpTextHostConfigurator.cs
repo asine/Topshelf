@@ -1,4 +1,4 @@
-﻿// Copyright 2007-2012 Chris Patterson, Dru Sellers, Travis Smith, et. al.
+﻿// Copyright 2007-2013 Chris Patterson, Dru Sellers, Travis Smith, et. al.
 //  
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 // this file except in compliance with the License. You may obtain a copy of the 
@@ -19,42 +19,43 @@ namespace Topshelf.HostConfigurators
     using Builders;
     using Configurators;
 
+
     public class PrefixHelpTextHostConfigurator :
         HostBuilderConfigurator
     {
-        readonly Assembly _assembly;
-        readonly string _resourceName;
-        string _text;
-
         public PrefixHelpTextHostConfigurator(Assembly assembly, string resourceName)
         {
-            _assembly = assembly;
-            _resourceName = resourceName;
+            Assembly = assembly;
+            ResourceName = resourceName;
         }
 
         public PrefixHelpTextHostConfigurator(string text)
         {
-            _text = text;
+            Text = text;
         }
+
+        public Assembly Assembly { get; private set; }
+        public string ResourceName { get; private set; }
+        public string Text { get; private set; }
 
         public IEnumerable<ValidateResult> Validate()
         {
             ValidateResult loadResult = null;
-            if (_assembly != null)
+            if (Assembly != null)
             {
-                if (_resourceName == null)
+                if (ResourceName == null)
                     yield return this.Failure("A resource name must be specified");
 
                 try
                 {
-                    Stream stream = _assembly.GetManifestResourceStream(_resourceName);
+                    Stream stream = Assembly.GetManifestResourceStream(ResourceName);
                     if (stream == null)
-                        loadResult = this.Failure("Resource", "Unable to load resource stream: " + _resourceName);
+                        loadResult = this.Failure("Resource", "Unable to load resource stream: " + ResourceName);
                     else
                     {
                         using (TextReader reader = new StreamReader(stream))
                         {
-                            _text = reader.ReadToEnd();
+                            Text = reader.ReadToEnd();
                         }
                     }
                 }
@@ -67,13 +68,13 @@ namespace Topshelf.HostConfigurators
                     yield return loadResult;
             }
 
-            if (_text == null)
+            if (Text == null)
                 yield return this.Failure("No additional help text was specified");
         }
 
         public HostBuilder Configure(HostBuilder builder)
         {
-            builder.Match<HelpBuilder>(x => x.SetAdditionalHelpText(_text));
+            builder.Match<HelpBuilder>(x => x.SetAdditionalHelpText(Text));
 
             return builder;
         }

@@ -12,6 +12,8 @@
 // specific language governing permissions and limitations under the License.
 namespace Topshelf.Runtime
 {
+    using System;
+
     /// <summary>
     ///   The settings that have been configured for the operating system service
     /// </summary>
@@ -52,5 +54,37 @@ namespace Topshelf.Runtime
         ///   True if the service can handle the shutdown event
         /// </summary>
         bool CanShutdown { get; }
+
+        /// <summary>
+        /// True if the service handles session change events
+        /// </summary>
+        bool CanSessionChanged { get; }
+
+        /// <summary>
+        /// True if the service handles power change events
+        /// </summary>
+        bool CanHandlePowerEvent { get; }
+
+        /// <summary>
+        /// The amount of time to wait for the service to start before timing out. Default is 10 seconds.
+        /// </summary>
+        TimeSpan StartTimeOut { get; }
+
+        /// <summary>
+        /// The amount of time to wait for the service to stop before timing out. Default is 10 seconds.
+        /// </summary>
+        TimeSpan StopTimeOut { get; }
+
+        /// <summary>
+        /// A callback to provide visibility into exceptions while Topshelf is performing its
+        /// own handling.
+        /// </summary>
+        Action<Exception> ExceptionCallback { get; }
+
+        /// <summary>
+        /// The policy that will be used when Topself detects an UnhandledException in the
+        /// application. The default policy is to log an error and to stop the service.
+        /// </summary>
+        UnhandledExceptionPolicyCode UnhandledExceptionPolicy { get; }
     }
 }

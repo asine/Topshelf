@@ -12,36 +12,71 @@
 // specific language governing permissions and limitations under the License.
 namespace Topshelf
 {
+    /// <summary>
+    /// Defines a service recovery configurator.
+    /// </summary>
     public interface ServiceRecoveryConfigurator
     {
         /// <summary>
         ///   Restart the service after waiting the delay period specified
         /// </summary>
-        /// <param name="delayInMinutes"> </param>
+        /// <param name="delay">The delay.</param>
+        /// <returns>The service recovery configurator.</returns>
+        ServiceRecoveryConfigurator RestartService(System.TimeSpan delay);
+
+        /// <summary>
+        ///   Restart the service after waiting the delay period in minutes
+        /// </summary>
+        /// <param name="delayInMinutes">The delay in minutes.</param>
+        /// <returns>The service recovery configurator.</returns>
         ServiceRecoveryConfigurator RestartService(int delayInMinutes);
+
+        /// <summary>
+        ///   Restart the computer after waiting the delay period specified
+        /// </summary>
+        /// <param name="delay">The delay.</param>
+        /// <param name="message"></param>
+        /// <returns>The service recovery configurator.</returns>
+        ServiceRecoveryConfigurator RestartComputer(System.TimeSpan delay, string message);
 
         /// <summary>
         ///   Restart the computer after waiting the delay period in minutes
         /// </summary>
-        /// <param name="delayInMinutes"> </param>
+        /// <param name="delayInMinutes">The delay in minutes.</param>
         /// <param name="message"> </param>
+        /// <returns>The service recovery configurator.</returns>
         ServiceRecoveryConfigurator RestartComputer(int delayInMinutes, string message);
 
         /// <summary>
         ///   Run the command specified
         /// </summary>
-        /// <param name="delayInMinutes"> </param>
-        /// <param name="command"> </param>
+        /// <param name="delay">The delay.</param>
+        /// <param name="command">The command to run.</param>
+        /// <returns>The service recovery configurator.</returns>
+        ServiceRecoveryConfigurator RunProgram(System.TimeSpan delay, string command);
+
+        /// <summary>
+        ///   Run the command specified
+        /// </summary>
+        /// <param name="delayInMinutes">The delay in minutes.</param>
+        /// <param name="command">The command to run.</param>
+        /// <returns>The service recovery configurator.</returns>
         ServiceRecoveryConfigurator RunProgram(int delayInMinutes, string command);
+
+        /// <summary>
+        ///   Take no action
+        /// </summary>
+        /// <returns>The service recovery configurator.</returns>
+        ServiceRecoveryConfigurator TakeNoAction();
 
         /// <summary>
         ///   Specifies the reset period for the restart options
         /// </summary>
-        /// <param name="days"> </param>
+        /// <param name="days">The reset period in days.</param>
         ServiceRecoveryConfigurator SetResetPeriod(int days);
 
         /// <summary>
-        /// Specifies that the recovery actions should only be taken on a service crash. If the service exists
+        /// Specifies that the recovery actions should only be taken on a service crash. If the service exits
         /// with a non-zero exit code, it will not be restarted.
         /// </summary>
         void OnCrashOnly();

@@ -1,4 +1,4 @@
-﻿// Copyright 2007-2012 Chris Patterson, Dru Sellers, Travis Smith, et. al.
+﻿// Copyright 2007-2013 Chris Patterson, Dru Sellers, Travis Smith, et. al.
 //  
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 // this file except in compliance with the License. You may obtain a copy of the 
@@ -18,22 +18,20 @@ namespace Topshelf.HostConfigurators
     using Configurators;
     using Runtime;
 
+
     public class StartModeHostConfigurator :
         HostBuilderConfigurator
     {
-        readonly HostStartMode _startMode;
-
         public StartModeHostConfigurator(HostStartMode startMode)
         {
-            _startMode = startMode;
+            StartMode = startMode;
         }
+
+        public HostStartMode StartMode { get; }
 
         public IEnumerable<ValidateResult> Validate()
         {
-#if NET35
-            if (_startMode == HostStartMode.AutomaticDelayed)
-                yield return this.Failure("StartMode", "Automatic (Delayed) is only available on .NET 4.0 or later");
-#endif
+
             yield break;
         }
 
@@ -42,7 +40,7 @@ namespace Topshelf.HostConfigurators
             if (builder == null)
                 throw new ArgumentNullException("builder");
 
-            builder.Match<InstallBuilder>(x => x.SetStartMode(_startMode));
+            builder.Match<InstallBuilder>(x => x.SetStartMode(StartMode));
 
             return builder;
         }

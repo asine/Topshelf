@@ -10,6 +10,11 @@ packages
 *.dotCover
 *.dotSettings
 
+.fake
+.idea
+.vs
+
+
 bin
 obj
 _ReSharper*

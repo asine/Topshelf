@@ -12,16 +12,16 @@
 // specific language governing permissions and limitations under the License.
 namespace Topshelf
 {
-    public enum TopshelfExitCode
-    {
-        Ok = 0,
-        AbnormalExit = 1,
-        SudoRequired = 2,
-        ServiceAlreadyInstalled = 3,
-        ServiceNotInstalled = 4,
-        StartServiceFailed = 5,
-        StopServiceFailed = 6,
-        ServiceAlreadyRunning = 7,
-        UnhandledServiceException = 8,
-    }
+	public enum TopshelfExitCode
+	{
+		Ok = 0,
+		ServiceAlreadyInstalled = 1242,
+		ServiceNotInstalled = 1243,
+		ServiceAlreadyRunning = 1056,
+		ServiceNotRunning = 1062,
+		ServiceControlRequestFailed = 1064,
+		AbnormalExit = 1067,
+		SudoRequired = 2,
+		NotRunningOnWindows = 11
+	}
 }

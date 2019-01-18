@@ -1,4 +1,4 @@
-﻿// Copyright 2007-2012 Chris Patterson, Dru Sellers, Travis Smith, et. al.
+﻿// Copyright 2007-2013 Chris Patterson, Dru Sellers, Travis Smith, et. al.
 //  
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 // this file except in compliance with the License. You may obtain a copy of the 
@@ -17,25 +17,26 @@ namespace Topshelf.HostConfigurators
     using Builders;
     using Configurators;
 
+
     public class InstallHostConfiguratorAction :
         HostBuilderConfigurator
     {
-        readonly Action<InstallBuilder> _callback;
-        readonly string _key;
-
         public InstallHostConfiguratorAction(string key, Action<InstallBuilder> callback)
         {
             if (callback == null)
                 throw new ArgumentNullException("callback");
 
-            _key = key;
-            _callback = callback;
+            Key = key;
+            Callback = callback;
         }
+
+        public Action<InstallBuilder> Callback { get; private set; }
+        public string Key { get; private set; }
 
         public IEnumerable<ValidateResult> Validate()
         {
-            if (_callback == null)
-                yield return this.Failure(_key, "A null callback was specified");
+            if (Callback == null)
+                yield return this.Failure(Key, "A null callback was specified");
         }
 
         public HostBuilder Configure(HostBuilder builder)
@@ -43,7 +44,7 @@ namespace Topshelf.HostConfigurators
             if (builder == null)
                 throw new ArgumentNullException("builder");
 
-            builder.Match<InstallBuilder>(x => _callback(x));
+            builder.Match<InstallBuilder>(x => Callback(x));
 
             return builder;
         }

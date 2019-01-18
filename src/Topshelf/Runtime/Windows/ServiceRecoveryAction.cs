@@ -14,15 +14,30 @@ namespace Topshelf.Runtime.Windows
 {
     using System;
 
+    /// <summary>
+    /// Represents a service recovery action.
+    /// </summary>
     public abstract class ServiceRecoveryAction
     {
-        protected ServiceRecoveryAction(int delay)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ServiceRecoveryAction"/> class.
+        /// </summary>
+        /// <param name="delay">The delay.</param>
+        protected ServiceRecoveryAction(TimeSpan delay)
         {
-            Delay = (int)TimeSpan.FromMinutes(delay).TotalMilliseconds;
+            Delay = (int)delay.TotalMilliseconds;
         }
 
-        public int Delay { get; private set; }
+        /// <summary>
+        /// Gets the delay in milliseconds.
+        /// </summary>
+        /// <value>The delay in milliseconds.</value>
+        public int Delay { get; }
 
+        /// <summary>
+        /// Gets the service recovery configuration action.
+        /// </summary>
+        /// <returns>A <see cref="NativeMethods.SC_ACTION"/> representing the service recovery configuration action.</returns>
         public abstract NativeMethods.SC_ACTION GetAction();
     }
 }

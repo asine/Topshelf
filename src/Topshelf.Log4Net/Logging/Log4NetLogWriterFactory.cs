@@ -20,9 +20,11 @@ namespace Topshelf.Logging
     public class Log4NetLogWriterFactory :
         LogWriterFactory
     {
+        private static readonly System.Reflection.Assembly _callingAssembly = typeof(Log4NetLogWriterFactory).Assembly;
+
         public LogWriter Get(string name)
         {
-            return new Log4NetLogWriter(LogManager.GetLogger(name));
+            return new Log4NetLogWriter(LogManager.GetLogger(_callingAssembly, name));
         }
 
         public void Shutdown()
@@ -40,15 +42,27 @@ namespace Topshelf.Logging
             HostLogger.UseLogger(new Log4NetLoggerConfigurator(file));
         }
 
+        public static void Use(string file, bool watch)
+        {
+            HostLogger.UseLogger(new Log4NetLoggerConfigurator(file, watch));
+        }
+
         [Serializable]
         public class Log4NetLoggerConfigurator :
             HostLoggerConfigurator
         {
             readonly string _file;
+            readonly bool _watch;
 
             public Log4NetLoggerConfigurator(string file)
+              : this(file, false)
+            {
+            }
+
+            public Log4NetLoggerConfigurator(string file, bool watch)
             {
                 _file = file;
+                _watch = watch;
             }
 
             public LogWriterFactory CreateLogWriterFactory()
@@ -59,7 +73,14 @@ namespace Topshelf.Logging
                     var configFile = new FileInfo(file);
                     if (configFile.Exists)
                     {
-                        XmlConfigurator.Configure(configFile);
+                        if (_watch)
+                        {
+                            XmlConfigurator.ConfigureAndWatch(LogManager.GetRepository(_callingAssembly), configFile);
+                        }
+                        else
+                        {
+                            XmlConfigurator.Configure(LogManager.GetRepository(_callingAssembly), configFile);
+                        }
                     }
                 }
 

@@ -13,6 +13,7 @@
 namespace Topshelf.Hosts
 {
     using System;
+    using System.Runtime.InteropServices;
     using Logging;
     using Runtime;
 
@@ -31,9 +32,14 @@ namespace Topshelf.Hosts
 
         public TopshelfExitCode Run()
         {
+#if NETCORE
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return TopshelfExitCode.NotRunningOnWindows;
+#endif
+
             if (!_environment.IsServiceInstalled(_settings.ServiceName))
             {
-                string message = string.Format("The {0} service is not installed.", _settings.ServiceName);
+                string message = $"The {_settings.ServiceName} service is not installed.";
                 _log.Error(message);
 
                 return TopshelfExitCode.ServiceNotInstalled;
@@ -51,7 +57,7 @@ namespace Topshelf.Hosts
 
             try
             {
-                _environment.StopService(_settings.ServiceName);
+                _environment.StopService(_settings.ServiceName, _settings.StopTimeOut);
 
                 _log.InfoFormat("The {0} service was stopped.", _settings.ServiceName);
                 return TopshelfExitCode.Ok;
@@ -59,7 +65,7 @@ namespace Topshelf.Hosts
             catch (Exception ex)
             {
                 _log.Error("The service failed to stop.", ex);
-                return TopshelfExitCode.StopServiceFailed;
+                return TopshelfExitCode.ServiceControlRequestFailed;
             }
         }
     }

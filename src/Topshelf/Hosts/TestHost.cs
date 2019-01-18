@@ -21,7 +21,6 @@ namespace Topshelf.Hosts
         Host,
         HostControl
     {
-        readonly HostEnvironment _environment;
         readonly LogWriter _log = HostLogger.Get<TestHost>();
         readonly ServiceHandle _serviceHandle;
         readonly HostSettings _settings;
@@ -29,12 +28,11 @@ namespace Topshelf.Hosts
         public TestHost(HostSettings settings, HostEnvironment environment, ServiceHandle serviceHandle)
         {
             if (settings == null)
-                throw new ArgumentNullException("settings");
+                throw new ArgumentNullException(nameof(settings));
             if (environment == null)
-                throw new ArgumentNullException("environment");
+                throw new ArgumentNullException(nameof(environment));
 
             _settings = settings;
-            _environment = environment;
             _serviceHandle = serviceHandle;
         }
 
@@ -43,7 +41,7 @@ namespace Topshelf.Hosts
             var exitCode = TopshelfExitCode.AbnormalExit;
             try
             {
-                exitCode = TopshelfExitCode.StartServiceFailed;
+                exitCode = TopshelfExitCode.ServiceControlRequestFailed;
 
                 _log.InfoFormat("The {0} service is being started.", _settings.ServiceName);
                 _serviceHandle.Start(this);
@@ -51,7 +49,7 @@ namespace Topshelf.Hosts
 
                 Thread.Sleep(100);
 
-                exitCode = TopshelfExitCode.StopServiceFailed;
+                exitCode = TopshelfExitCode.ServiceControlRequestFailed;
 
                 _log.InfoFormat("The {0} service is being stopped.", _settings.ServiceName);
                 _serviceHandle.Stop(this);
@@ -61,6 +59,8 @@ namespace Topshelf.Hosts
             }
             catch (Exception ex)
             {
+                _settings.ExceptionCallback?.Invoke(ex);
+
                 _log.Error("The service threw an exception during testing.", ex);
             }
             finally
@@ -82,9 +82,9 @@ namespace Topshelf.Hosts
             _log.Info("Service Stop requested, exiting.");
         }
 
-        void HostControl.Restart()
+        void HostControl.Stop(TopshelfExitCode exitCode)
         {
-            _log.Info("Service Restart requested, but we don't support that here, so we are exiting.");
+            _log.Info($"Service Stop requested with exit code {exitCode}, exiting.");
         }
     }
 }

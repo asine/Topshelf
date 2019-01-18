@@ -47,6 +47,9 @@ namespace Topshelf.Runtime.Windows
 
             _displayName = "";
             _description = "";
+
+          StartTimeOut = TimeSpan.FromSeconds(10);
+          StopTimeOut = TimeSpan.FromSeconds(10);
         }
 
         public string Name { get; set; }
@@ -96,5 +99,17 @@ namespace Topshelf.Runtime.Windows
         public bool CanPauseAndContinue { get; set; }
 
         public bool CanShutdown { get; set; }
+
+        public bool CanSessionChanged { get; set; }
+        
+        public bool CanHandlePowerEvent { get; set; }
+
+        public TimeSpan StartTimeOut { get; set; }
+        
+        public TimeSpan StopTimeOut { get; set; }
+
+        public Action<Exception> ExceptionCallback { get; set; }
+
+        public UnhandledExceptionPolicyCode UnhandledExceptionPolicy { get; set; }
     }
 }

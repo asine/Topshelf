@@ -26,10 +26,15 @@ namespace Topshelf.Builders
         readonly Action<T, HostControl> _shutdown;
         readonly Func<T, HostControl, bool> _start;
         readonly Func<T, HostControl, bool> _stop;
+        readonly Action<T, HostControl, SessionChangedArguments> _sessionChanged;
+        readonly Func<T, HostControl, PowerEventArguments, bool> _powerEvent;
+        readonly Action<T, HostControl, int> _customCommand;
 
         public DelegateServiceBuilder(ServiceFactory<T> serviceFactory, Func<T, HostControl, bool> start,
             Func<T, HostControl, bool> stop, Func<T, HostControl, bool> pause, Func<T, HostControl, bool> @continue,
-            Action<T, HostControl> shutdown, ServiceEvents serviceEvents)
+            Action<T, HostControl> shutdown, Action<T, HostControl, SessionChangedArguments> sessionChanged,
+            Func<T, HostControl, PowerEventArguments, bool> powerEvent,
+            Action<T, HostControl, int> customCommand, ServiceEvents serviceEvents)
         {
             _serviceFactory = serviceFactory;
             _start = start;
@@ -37,6 +42,9 @@ namespace Topshelf.Builders
             _pause = pause;
             _continue = @continue;
             _shutdown = shutdown;
+            _sessionChanged = sessionChanged;
+            _powerEvent = powerEvent;
+            _customCommand = customCommand;
             _serviceEvents = serviceEvents;
         }
 
@@ -46,7 +54,7 @@ namespace Topshelf.Builders
             {
                 T service = _serviceFactory(settings);
 
-                return new DelegateServiceHandle(service, _start, _stop, _pause, _continue, _shutdown, _serviceEvents);
+                return new DelegateServiceHandle(service, _start, _stop, _pause, _continue, _shutdown, _sessionChanged, _powerEvent, _customCommand, _serviceEvents);
             }
             catch (Exception ex)
             {
@@ -64,10 +72,14 @@ namespace Topshelf.Builders
             readonly Action<T, HostControl> _shutdown;
             readonly Func<T, HostControl, bool> _start;
             readonly Func<T, HostControl, bool> _stop;
+            readonly Action<T, HostControl, SessionChangedArguments> _sessionChanged;
+            readonly Func<T, HostControl, PowerEventArguments, bool> _powerEvent;
+            readonly Action<T, HostControl, int> _customCommand;
 
             public DelegateServiceHandle(T service, Func<T, HostControl, bool> start, Func<T, HostControl, bool> stop,
                 Func<T, HostControl, bool> pause, Func<T, HostControl, bool> @continue, Action<T, HostControl> shutdown,
-                ServiceEvents serviceEvents)
+                Action<T, HostControl, SessionChangedArguments> sessionChanged, Func<T, HostControl, PowerEventArguments, bool> powerEvent,
+                Action<T, HostControl, int> customCommand, ServiceEvents serviceEvents)
             {
                 _service = service;
                 _start = start;
@@ -75,6 +87,9 @@ namespace Topshelf.Builders
                 _pause = pause;
                 _continue = @continue;
                 _shutdown = shutdown;
+                _sessionChanged = sessionChanged;
+                _powerEvent = powerEvent;
+                _customCommand = customCommand;
                 _serviceEvents = serviceEvents;
             }
 
@@ -123,6 +138,26 @@ namespace Topshelf.Builders
             {
                 if(_shutdown != null)
                     _shutdown(_service, hostControl);
+            }
+
+            public void SessionChanged(HostControl hostControl, SessionChangedArguments arguments)
+            {
+                if (_sessionChanged != null)
+                    _sessionChanged(_service, hostControl, arguments);
+            }
+
+            public bool PowerEvent(HostControl hostControl, PowerEventArguments arguments)
+            {
+                if (_powerEvent != null)
+                    return _powerEvent(_service, hostControl, arguments);
+
+                return false;
+            }
+
+            public void CustomCommand(HostControl hostControl, int command)
+            {
+                if (_customCommand != null)
+                    _customCommand(_service, hostControl, command);
             }
         }
     }

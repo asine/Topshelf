@@ -50,13 +50,15 @@ namespace Topshelf.Runtime
         /// Start the service using operating system controls
         /// </summary>
         /// <param name="serviceName">The name of the service</param>
-        void StartService(string serviceName);
+        /// <param name="startTimeOut">Waits for the service to reach the running status in the specified time.</param>
+        void StartService(string serviceName, TimeSpan startTimeOut);
 
         /// <summary>
         /// Stop the service using operating system controls
         /// </summary>
-        /// <param name="serviceName"></param>
-        void StopService(string serviceName);
+        /// <param name="serviceName">The name of the service</param>
+        /// <param name="stopTimeOut">Waits for the service to reach the stopeed status in the specified time.</param>
+        void StopService(string serviceName, TimeSpan stopTimeOut);
 
         /// <summary>
         /// Install the service using the settings provided
@@ -66,8 +68,8 @@ namespace Topshelf.Runtime
         /// <param name="afterInstall"> </param>
         /// <param name="beforeRollback"> </param>
         /// <param name="afterRollback"> </param>
-        void InstallService(InstallHostSettings settings, Action beforeInstall, Action afterInstall, Action beforeRollback, Action afterRollback);
-
+        void InstallService(InstallHostSettings settings, Action<InstallHostSettings> beforeInstall, Action afterInstall, Action beforeRollback, Action afterRollback);
+        
         /// <summary>
         /// Uninstall the service using the settings provided
         /// </summary>
@@ -89,5 +91,12 @@ namespace Topshelf.Runtime
         /// <param name="serviceHandle"></param>
         /// <returns></returns>
         Host CreateServiceHost(HostSettings settings, ServiceHandle serviceHandle);
+
+        /// <summary>
+        /// Send a command to a service to make it do something
+        /// </summary>
+        /// <param name="serviceName">The service name</param>
+        /// <param name="command">The command value</param>
+        void SendServiceCommand(string serviceName, int command);
     }
 }
